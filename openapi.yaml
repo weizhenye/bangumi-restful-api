@@ -1,0 +1,1189 @@
+openapi: 3.0.0
+info:
+  title: Bangumi RESTful API
+  version: 1.0.0
+  description: |-
+    __本文档仅为 RESTful API 设计练习，而非实际存在的 API。__
+
+    实际 API 请查看 [https://bangumi.github.io/api/](https://bangumi.github.io/api/)
+
+    一些原则、约定、说明：
+    * 涉及图片 url 的字段，如头像、封面，都为 string 类型。获取不同质量、尺寸的图片通过在图片 url 后加 query 实现。
+  contact:
+    name: Zhenye Wei
+    url: 'https://github.com/weizhenye/bangumi-restful-api/issues'
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+servers:
+  - url: 'https://api.bgm.tv'
+paths:
+  /groups:
+    get:
+      summary: 小组列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Group'
+      operationId: get-groups
+      description: 获取小组列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+          in: query
+          name: category.id
+          description: 根据分类 ID 过滤
+        - schema:
+            type: string
+          in: query
+          name: creator.id
+          description: 根据创建者用户 ID 过滤
+        - schema:
+            type: string
+          in: query
+          name: user.id
+          description: 根据成员用户 ID 过滤
+      tags:
+        - 小组
+    post:
+      summary: 创建小组
+      operationId: post-groups
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+      description: 创建小组
+      tags:
+        - 小组
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+  '/groups/{groupId}':
+    parameters:
+      - schema:
+          type: string
+        name: groupId
+        in: path
+        required: true
+    get:
+      summary: 小组详情
+      tags:
+        - 小组
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+      operationId: get-groups-groupId
+      description: 获取小组详情
+    patch:
+      summary: 修改小组
+      operationId: patch-groups-groupId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+        description: ''
+      description: 修改小组
+      tags:
+        - 小组
+  '/groups/{groupId}/users':
+    parameters:
+      - schema:
+          type: string
+        name: groupId
+        in: path
+        required: true
+    get:
+      summary: 成员列表
+      tags:
+        - 小组
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+      operationId: get-groups-groupId-users
+      description: 获取成员列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+  '/groups/{groupId}/users/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: groupId
+        in: path
+        required: true
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 确认成员
+      operationId: get-groups-groupId-users-userId
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      description: 用于判断是否已加入小组，未加入返回 404
+      tags:
+        - 小组
+    put:
+      summary: 加入小组
+      operationId: put-groups-groupId-users-userId
+      responses:
+        '201':
+          description: Created
+      description: 加入小组
+      tags:
+        - 小组
+    delete:
+      summary: 退出小组
+      operationId: delete-groups-groupId-users-userId
+      responses:
+        '204':
+          description: No Content
+      description: 退出小组
+      tags:
+        - 小组
+  /images:
+    post:
+      summary: 上传图片
+      tags:
+        - 通用
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: ID
+                  url:
+                    type: string
+                    description: URL
+                    format: uri
+                required:
+                  - id
+                  - url
+      operationId: post-images
+      description: '上传图片，拿返回的 url 进行后续流程。如修改用户头像，则将该 url 作为 request body 里的 avatar 字段调用 `PATCH /users/{userId}`。'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+              required:
+                - image
+        description: 二进制图片内容
+  /messages:
+    get:
+      summary: 短信列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  messages:
+                    $ref: '#/components/schemas/Message'
+      operationId: get-messages
+      description: 获取短信列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+            enum:
+              - +createdAt
+              - '-createdAt'
+          in: query
+          name: sort
+          description: 排序
+      tags:
+        - 短信
+    post:
+      summary: 发送短信
+      operationId: post-messages
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+      description: 发送短信
+      tags:
+        - 短信
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+  '/messages/{messageId}':
+    parameters:
+      - schema:
+          type: array
+          items:
+            type: string
+        name: messageId
+        in: path
+        required: true
+        description: 多个用逗号分隔
+    delete:
+      summary: 删除短信
+      operationId: delete-messages-messageId
+      responses:
+        '204':
+          description: No Content
+      description: 删除短信
+      tags:
+        - 短信
+  /settings:
+    get:
+      summary: 设置
+      tags:
+        - 设置
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+      operationId: get-settings
+      description: 获取设置
+    patch:
+      summary: 修改设置
+      operationId: patch-settings
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+      description: 修改设置
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      tags:
+        - 设置
+  /topics:
+    get:
+      summary: 话题列表
+      tags:
+        - 话题
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  topics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Topic'
+      operationId: get-topics
+      description: 获取话题列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+          in: query
+          name: group.id
+          description: 根据小组 ID 过滤
+        - schema:
+            type: string
+          in: query
+          name: creator.id
+          description: 根据创建者用户 ID 过滤
+        - schema:
+            type: string
+          in: query
+          name: comment.creator.id
+          description: 根据回复者用户 ID 过滤
+    post:
+      summary: 创建话题
+      operationId: post-topics
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+      description: 创建话题
+      tags:
+        - 话题
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Topic'
+        description: '必填字段：`title`, `content`, `group.id`，其他忽略'
+  '/topics/{topicId}':
+    parameters:
+      - schema:
+          type: string
+        name: topicId
+        in: path
+        required: true
+    get:
+      summary: 话题详情
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+      operationId: get-topics-topicId
+      description: 获取话题详情
+      tags:
+        - 话题
+    patch:
+      summary: 修改话题
+      operationId: patch-groups-groupId-topics-topicId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+      description: 修改话题
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Topic'
+      tags:
+        - 话题
+    delete:
+      summary: 删除话题
+      operationId: delete-groups-groupId-topics-topicId
+      responses:
+        '204':
+          description: No Content
+      description: 删除话题
+      tags:
+        - 话题
+  '/topics/{topicId}/comments':
+    parameters:
+      - schema:
+          type: string
+        name: topicId
+        in: path
+        required: true
+    get:
+      summary: 话题评论列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+      operationId: get-topics-topicId-comments
+      description: 获取话题评论列表
+      tags:
+        - 话题
+    post:
+      summary: 创建话题评论
+      operationId: post-groups-groupId-topics-topicId-comments
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 创建话题评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 话题
+  '/topics/{topicId}/comments/{commentId}':
+    parameters:
+      - schema:
+          type: string
+        name: topicId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: commentId
+        in: path
+        required: true
+    patch:
+      summary: 修改话题评论
+      operationId: patch-topics-topicId-comments-commentId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 修改话题评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 话题
+    delete:
+      summary: 删除话题评论
+      operationId: delete-groups-groupId-topics-topicId-comments-commentId
+      responses:
+        '204':
+          description: No Content
+      description: 删除话题评论
+      tags:
+        - 话题
+  /users:
+    post:
+      summary: 创建用户
+      operationId: post-users
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      description: 创建用户
+      tags:
+        - 用户
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: 邮箱
+                name:
+                  type: string
+                  description: 昵称
+                password:
+                  type: string
+                  format: password
+                  description: 密码
+              required:
+                - email
+                - password
+        description: 验证码与实际采用方案有关，不是用户模型的属性，不作为 body 的字段，可以加 Header 里
+  '/users/{userId}':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 用户详情
+      tags:
+        - 用户
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get-users-userId
+      description: 获取用户详情
+    patch:
+      summary: 修改用户详情
+      operationId: patch-users-userId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+      description: 修改用户详情
+      requestBody:
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/User'
+                - type: object
+                  properties:
+                    oldPassword:
+                      type: string
+                      description: 旧密码
+                      format: password
+                    password:
+                      type: string
+                      description: 新密码
+                      format: password
+        description: 可传部分字段
+      tags:
+        - 用户
+  '/users/{userId}/blocks':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 绝交列表
+      tags:
+        - 用户
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  blocks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+      operationId: get-users-userId-blocks
+      description: 获取绝交列表
+  '/users/{userId}/blocks/{blockId}':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - schema:
+          type: string
+        name: blockId
+        in: path
+        required: true
+        description: 绝交对象的用户 ID
+    get:
+      summary: 确认绝交
+      tags:
+        - 用户
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get-users-userId-blocks-blockId
+      description: 用于判断是否绝交某用户，未绝交返回 404
+    put:
+      summary: 创建绝交
+      operationId: put-users-userId-blocks-blockId
+      responses:
+        '201':
+          description: Created
+      description: 创建绝交
+      tags:
+        - 用户
+    delete:
+      summary: 取消绝交
+      operationId: delete-users-userId-blocks-blockId
+      responses:
+        '204':
+          description: No Content
+      description: 取消绝交
+      tags:
+        - 用户
+  '/users/{userId}/followers':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 关注者列表
+      tags:
+        - 用户
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  followers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+      operationId: get-users-userId-followers
+      description: 获取关注者列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+  '/users/{userId}/followings':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 正在关注列表
+      tags:
+        - 用户
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  followings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+      operationId: get-users-userId-followings
+      description: 获取正在关注列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+  '/users/{userId}/followings/{follwingId}':
+    parameters:
+      - $ref: '#/components/parameters/userId'
+      - schema:
+          type: string
+        name: follwingId
+        in: path
+        required: true
+        description: 关注的用户的 id 或用户名
+    get:
+      summary: 确认关注
+      operationId: get-users-userId-followings-follwingId
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      description: 用于判断是否关注某用户，未关注返回 404
+      tags:
+        - 用户
+    put:
+      summary: 添加关注
+      operationId: put-users-userId-followings-follwingId
+      responses:
+        '201':
+          description: Created
+      tags:
+        - 用户
+      description: 添加关注
+    delete:
+      summary: 取消关注
+      operationId: delete-users-userId-followings-follwingId
+      responses:
+        '204':
+          description: No Content
+      description: 取消关注
+      tags:
+        - 用户
+components:
+  schemas:
+    Comment:
+      title: Comment
+      type: object
+      description: 评论
+      properties:
+        id:
+          type: number
+          description: ID
+        content:
+          type: string
+          description: 正文
+        replyTo:
+          nullable: true
+          type: number
+          description: 被回复的评论的 ID
+        createdAt:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedAt:
+          type: string
+          description: 更新时间
+          format: date-time
+        creator:
+          $ref: '#/components/schemas/User'
+      required:
+        - id
+        - content
+        - replyTo
+        - createdAt
+        - updatedAt
+        - creator
+    Error:
+      title: Error
+      description: 错误
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          description: ''
+          properties:
+            code:
+              type: string
+              description: 错误码
+            message:
+              type: string
+              description: 错误信息
+      required:
+        - error
+    Group:
+      title: Group
+      type: object
+      description: 小组
+      properties:
+        id:
+          type: string
+          description: ID
+          example: boring
+        name:
+          type: string
+          example: 靠谱人生茶话会
+          description: 名称
+        intro:
+          type: string
+          description: 介绍
+        avatar:
+          type: string
+          description: 头像
+          format: uri
+        public:
+          description: 公开性
+          type: boolean
+        category:
+          type: object
+          description: 分类
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+              description: 分类 ID
+              example: Bangumi
+            name:
+              type: string
+              description: 分类名称
+              example: 番组
+        createdAt:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedAt:
+          type: string
+          description: 更新时间
+          format: date-time
+        creator:
+          $ref: '#/components/schemas/User'
+        stat:
+          required:
+            - users
+            - topics
+          description: 统计信息
+          type: object
+          properties:
+            users:
+              type: number
+              description: 成员数
+            topics:
+              type: number
+              description: 话题数
+      required:
+        - id
+        - name
+        - intro
+        - avatar
+        - public
+        - category
+        - createdAt
+        - updatedAt
+        - creator
+        - stat
+    Message:
+      title: Message
+      type: object
+      description: 短信
+      properties:
+        id:
+          type: string
+          description: ID
+        title:
+          type: string
+          description: 标题
+        content:
+          type: string
+          description: 内容
+        sender:
+          type: number
+          description: 发送者用户 ID
+        receiver:
+          type: number
+          description: 接受者用户 ID
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+      required:
+        - id
+        - content
+        - sender
+        - receiver
+        - createdAt
+        - title
+    Pagination:
+      title: Pagination
+      type: object
+      description: 分页
+      properties:
+        total:
+          type: number
+          description: 总条数
+        page:
+          type: number
+          description: 当前页数
+        perPage:
+          type: number
+          description: 每页条数
+        lastPage:
+          type: number
+          description: 总页数
+      required:
+        - total
+        - page
+        - perPage
+        - lastPage
+    Settings:
+      title: Settings
+      type: object
+      description: 设置
+      properties:
+        message:
+          type: string
+          enum:
+            - all
+            - friends
+            - none
+          description: 接收短信
+        timeline:
+          type: string
+          enum:
+            - all
+            - friends
+            - none
+          description: 时间线回复
+        at:
+          type: string
+          enum:
+            - all
+            - friends
+            - none
+          description: '@ 提醒'
+        comment:
+          type: string
+          description: 评论提醒
+          enum:
+            - all
+            - friends
+            - none
+        ukagaka:
+          description: 伪春菜
+          type: number
+        chart:
+          type: number
+          description: 图像榜单
+        layout:
+          type: array
+          description: 时光机布局
+          items:
+            type: string
+      required:
+        - message
+        - timeline
+        - at
+        - comment
+        - ukagaka
+        - chart
+        - layout
+    Topic:
+      title: Topic
+      type: object
+      description: 话题
+      properties:
+        id:
+          type: number
+          description: ID
+        title:
+          type: string
+          description: 标题
+        content:
+          type: string
+          description: 正文
+        createdAt:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedAt:
+          type: string
+          description: 更新时间
+          format: date-time
+        creator:
+          $ref: '#/components/schemas/User'
+        group:
+          $ref: '#/components/schemas/Group'
+        stat:
+          type: object
+          description: 统计信息
+          required:
+            - comments
+            - lastCommentedAt
+          properties:
+            comments:
+              type: number
+              description: 回复数
+            lastCommentedAt:
+              type: string
+              format: date-time
+              description: 最后回复时间
+      required:
+        - id
+        - title
+        - content
+        - createdAt
+        - updatedAt
+        - creator
+        - stat
+    User:
+      title: User
+      type: object
+      description: 用户
+      properties:
+        id:
+          type: number
+          example: 1
+          description: 用户 ID
+        username:
+          type: string
+          example: sai
+          description: 用户名
+          pattern: '^[a-z][a-z0-9_]+'
+        name:
+          type: string
+          example: "Sai\uD83D\uDD96"
+          description: 昵称
+        email:
+          type: string
+          description: 邮箱
+          format: email
+        avatar:
+          type: string
+          format: uri
+          description: 头像
+        bio:
+          type: string
+          description: 自我介绍
+          example: 'Awesome!'
+        url:
+          type: string
+          format: uri
+          example: 'http://saicn.com/me'
+          description: 个人网站
+        state:
+          type: string
+          description: 状态：正常、禁言、封禁
+          enum:
+            - active
+            - muted
+            - blocked
+        createdAt:
+          type: string
+          description: 创建时间
+          format: date-time
+        permission:
+          type: object
+          description: 权限（被其他模型引用时不返回）
+          properties:
+            bangumi:
+              type: boolean
+              description: Bangumi 管理权限
+            doujin:
+              type: boolean
+              description: 天窗管理权限
+            mono:
+              type: boolean
+              description: 人物管理权限
+            wiki:
+              type: boolean
+              description: 维基管理权限
+            wikiEdit:
+              type: boolean
+              description: 维基编辑权限
+          required:
+            - bangumi
+            - doujin
+            - mono
+            - wiki
+            - wikiEdit
+        sns:
+          type: object
+          description: 网络服务（被其他模型引用时不返回）
+          properties:
+            psn:
+              type: string
+              description: PlayStation Network
+            xboxLive:
+              type: string
+              description: Xbox Live
+            ns:
+              type: string
+              description: Nintendo Switch
+            friendCode:
+              type: string
+              description: Nintendo Friend Code
+            steam:
+              type: string
+              description: Steam
+            battleTag:
+              type: string
+              description: BattleTag
+            pixiv:
+              type: string
+              description: Pixiv
+            github:
+              type: string
+              description: GitHub
+            twitter:
+              type: string
+              description: Twitter
+            instagram:
+              type: string
+              description: Instagram
+          required:
+            - psn
+            - xboxLive
+            - ns
+            - friendCode
+            - steam
+            - battleTag
+            - pixiv
+            - github
+            - twitter
+            - instagram
+      required:
+        - id
+        - username
+        - name
+        - email
+        - avatar
+        - bio
+        - url
+        - state
+        - createdAt
+  parameters:
+    page:
+      name: page
+      in: query
+      description: 当前页数
+      schema:
+        type: number
+    perPage:
+      name: perPage
+      in: query
+      description: 每页条数
+      schema:
+        type: number
+    userId:
+      name: userId
+      in: path
+      description: 用户 ID 或用户名
+      required: true
+      schema:
+        type: string
+        example: sai
+tags:
+  - name: 用户
+  - name: 小组
+  - name: 话题
+  - name: 短信
+  - name: 设置
+  - name: 通用
