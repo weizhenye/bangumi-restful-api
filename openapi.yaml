@@ -7,23 +7,30 @@ info:
 
     实际 API 请查看 [https://bangumi.github.io/api/](https://bangumi.github.io/api/)
 
-    一些原则、约定、说明：
+    一些约定、说明：
+    * 请求资源列表时，模型的 optional 字段可以不返回；请求资源详情时，整个模型完整返回
+    * query 的类型为 array 时，多个值使用逗号分隔
     * 涉及图片 url 的字段，如头像、封面，都为 string 类型。获取不同质量、尺寸的图片通过在图片 url 后加 query 实现。
 
     TODO:
-    * 所有的 public 字段考虑改名
-    * query 描述逗号分隔的地方使用数组类型
-    * Blog 在 request body 里需要有 subjects[].id
-    * 漫画系列、小说系列是否应该作为子类型
-    * 收藏，只看朋友、好友评价
-    * 关联条目
+    * 杂项
+      * 最后评论时间
+    * 条目
+      * 漫画系列、小说系列是否应该作为子类型
+      * 关联条目
+      * 收藏只看朋友、好友评价
+    * Wiki
+      * 编辑记录
+      * 关联记录
+    * 日志
+      * Blog 在 request body 里需要有 subjects[].id
+    * 目录
+      * 当前用户已完成条目数
+    * 章节
     * 人物
     * 角色
-    * Wiki
-    * Wiki 编辑记录
-    * 章节，根据最后回复时间过滤
-    * 目录的内容评论、排序
-    * 章节收藏状态，考虑重新设计条目收藏状态
+    * 标签
+      * 你再想想
   contact:
     name: Zhenye Wei
     url: 'https://github.com/weizhenye/bangumi-restful-api/issues'
@@ -58,11 +65,14 @@ paths:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/perPage'
         - schema:
-            type: string
-            example: 动画
+            type: array
+            items:
+              type: string
+              example: 动画
           in: query
+          explode: false
           name: tags
-          description: 根据标签过滤（多个使用逗号分隔）
+          description: 根据标签过滤
         - schema:
             type: string
           in: query
@@ -240,11 +250,218 @@ paths:
       description: 删除日志评论
       tags:
         - 日志
-  /collections:
+  /characters:
     get:
-      summary: 收藏列表
+      summary: 角色列表
       tags:
-        - 收藏
+        - 角色
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  characters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Character'
+      operationId: get-characters
+      description: 获取角色列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+            enum:
+              - character
+              - robot
+              - fleet
+              - organization
+          in: query
+          name: type
+          description: 根据类型过滤
+        - schema:
+            type: string
+            enum:
+              - A
+              - B
+              - O
+              - AB
+          in: query
+          name: bloodType
+          description: 根据血型过滤
+        - schema:
+            type: string
+            enum:
+              - male
+              - female
+          in: query
+          name: gender
+          description: 根据性别过滤
+        - schema:
+            type: string
+            enum: []
+            example: '--01'
+          in: query
+          name: birthday
+          description: 根据生日过滤
+        - schema:
+            type: string
+            enum:
+              - '-stat.users'
+              - '-stat.comments'
+              - '-createdAt'
+              - +name
+          in: query
+          name: sortBy
+          description: 排序
+    post:
+      summary: 新建角色
+      operationId: post-characters
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+      description: 新建角色
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Character'
+      tags:
+        - 角色
+  '/characters/{characterId}':
+    parameters:
+      - schema:
+          type: string
+        name: characterId
+        in: path
+        required: true
+    get:
+      summary: 角色详情
+      tags:
+        - 角色
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+      operationId: get-characters-characterId
+      description: 获取角色详情
+    patch:
+      summary: 修改角色
+      operationId: patch-characters-characterId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Character'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Character'
+      description: 修改角色
+      tags:
+        - 角色
+  '/characters/{characterId}/comments':
+    parameters:
+      - schema:
+          type: string
+        name: characterId
+        in: path
+        required: true
+    get:
+      summary: 角色评论列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+      operationId: get-characters-characterId-comments
+      description: 获取角色评论列表
+      tags:
+        - 角色
+    post:
+      summary: 创建角色评论
+      operationId: post-characters-characterId-comments
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 创建角色评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 角色
+  '/characters/{characterId}/comments/{commentId}':
+    parameters:
+      - schema:
+          type: string
+        name: characterId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: commentId
+        in: path
+        required: true
+    patch:
+      summary: 修改角色评论
+      operationId: patch-characters-characterId-comments-commentId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 修改角色评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 角色
+    delete:
+      summary: 删除角色评论
+      operationId: delete-characters-characterId-comments-commentId
+      responses:
+        '204':
+          description: No Content
+      description: 删除角色评论
+      tags:
+        - 角色
+  /characters/-/collections:
+    get:
+      summary: 所有角色收藏列表
+      tags:
+        - 角色
       responses:
         '200':
           description: OK
@@ -258,9 +475,9 @@ paths:
                   collections:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Collection'
-      operationId: get-collections
-      description: 获取收藏列表
+                      $ref: '#/components/schemas/CharacterCollection'
+      operationId: get-characters---collections
+      description: 获取所有角色收藏列表，不返回 creator 字段，要返回 character 字段
       parameters:
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/perPage'
@@ -268,105 +485,79 @@ paths:
             type: string
           in: query
           name: creator.id
-          description: 根据创建者用户 ID 或用户名过滤（不返回 creator 字段）
-        - schema:
-            type: string
-          in: query
-          name: subject.id
-          description: 根据条目 ID 过滤（不返回 subject 字段）
-        - schema:
-            type: string
-            enum:
-              - planned
-              - completed
-              - doing
-              - onHold
-              - dropped
-          in: query
-          name: state
-          description: 根据状态过滤
-        - schema:
-            type: string
-            enum:
-              - 'true'
-          in: query
-          name: review
-          description: 过滤带吐槽的收藏
-        - schema:
-            type: string
-          in: query
-          name: tags
-          description: 根据标签过滤
-        - schema:
-            type: string
-            enum:
-              - '-score'
-              - '-createdAt'
-              - '-subject.beginDate'
-              - +subject.name
-          in: query
-          name: sort
-          description: 排序
-  '/collections/{subjectId}/{userId}':
+          description: 根据创建者用户 ID 或用户名过滤
+          required: true
+  '/characters/{characterId}/collections':
     parameters:
       - schema:
           type: string
-        name: subjectId
+        name: characterId
         in: path
         required: true
-      - $ref: '#/components/parameters/userId'
     get:
-      summary: 收藏详情
+      summary: 角色收藏列表
       tags:
-        - 收藏
+        - 角色
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Collection'
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CharacterCollection'
+      operationId: get-characters-characterId-collections
+      description: 获取角色收藏列表，要返回 creator 字段，不返回 character 字段
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+  '/characters/{characterId}/collections/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: characterId
+        in: path
+        required: true
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 确认收藏角色
+      operationId: get-characters-characterId-collections-userId
+      responses:
+        '204':
+          description: No Content
         '404':
           description: Not Found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      operationId: get-collections-subjectId-userId
-      description: 用于判断是否收藏，未收藏返回 404
-    patch:
-      summary: 修改收藏
-      operationId: patch-collections-subjectId-userId
+      description: 用于判断是否已收藏该角色，未收藏返回 404
+      tags:
+        - 角色
+    put:
+      summary: 收藏角色
+      operationId: put-characters-characterId-collections-userId
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Collection'
         '201':
           description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Collection'
-      description: 修改收藏，未收藏时创建收藏
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Collection'
+      description: 收藏角色
       tags:
-        - 收藏
+        - 角色
     delete:
-      summary: 删除收藏
-      operationId: delete-collections-subjectId-userId
+      summary: 取消收藏角色
+      operationId: delete-characters-characterId-collections-userId
       responses:
         '204':
           description: No Content
-      description: 删除收藏
+      description: 取消收藏角色
       tags:
-        - 收藏
+        - 角色
   /episodes:
     get:
       summary: 章节列表
@@ -391,32 +582,11 @@ paths:
         - $ref: '#/components/parameters/perPage'
         - schema:
             type: string
+            enum:
+              - '-comment.updatedAt'
           in: query
-          name: subject.id
-          description: 过滤某条目的章节（不返回 subject 字段）
-        - schema:
-            type: string
-          in: query
-          name: sort
+          name: sortBy
           description: 排序
-    post:
-      summary: 新建章节
-      operationId: post-episodes
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Episode'
-      description: 新建章节
-      tags:
-        - 章节
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Episode'
   '/episodes/{episodeId}':
     parameters:
       - schema:
@@ -474,6 +644,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       description: 删除章节
+      tags:
+        - 章节
+  '/episodes/{episodeId}/collections/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: episodeId
+        in: path
+        required: true
+      - $ref: '#/components/parameters/userId'
+    patch:
+      summary: 修改章节收藏
+      tags:
+        - 章节
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EpisodeCollection'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EpisodeCollection'
+      operationId: patch-episodes-episodeId-collections-userId
+      description: 修改章节收藏
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EpisodeCollection'
+        description: ''
+    delete:
+      summary: 删除章节收藏
+      operationId: delete-episodes-episodeId-collections-userId
+      responses:
+        '204':
+          description: No Content
+      description: 删除章节收藏
       tags:
         - 章节
   '/episodes/{episodeId}/comments':
@@ -912,7 +1124,7 @@ paths:
               - '-stat.users'
               - '-createdAt'
           in: query
-          name: sort
+          name: sortBy
           description: 排序
         - schema:
             type: string
@@ -1072,6 +1284,145 @@ paths:
       tags:
         - 目录
       description: 删除目录评论
+  '/lists/{listId}/items':
+    parameters:
+      - schema:
+          type: string
+        name: listId
+        in: path
+        required: true
+    post:
+      summary: 新建目录项
+      tags:
+        - 目录
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListItem'
+      operationId: post-lists-listId-items
+      description: 新建目录项
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListItem'
+  '/lists/{listId}/items/{itemId}':
+    parameters:
+      - schema:
+          type: string
+        name: listId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: itemId
+        in: path
+        required: true
+    patch:
+      summary: 修改目录项
+      operationId: patch-lists-listId-items-itemId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListItem'
+      description: 修改目录项
+      tags:
+        - 目录
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListItem'
+    delete:
+      summary: 删除目录项
+      tags:
+        - 目录
+      responses:
+        '204':
+          description: No Content
+      operationId: delete-lists-listId-items-itemId
+      description: 删除目录项
+  '/lists/{listId}/characters':
+    parameters:
+      - schema:
+          type: string
+        name: listId
+        in: path
+        required: true
+    get:
+      summary: 目录角色列表
+      tags:
+        - 目录
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  characters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Character'
+      operationId: get-lists-listId-characters
+      description: 获取目录角色列表
+  '/lists/{listId}/episodes':
+    parameters:
+      - schema:
+          type: string
+        name: listId
+        in: path
+        required: true
+    get:
+      summary: 目录章节列表
+      tags:
+        - 目录
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  episodes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Episode'
+      operationId: get-lists-listId-episodes
+      description: 获取目录章节列表
+  '/lists/{listId}/persons':
+    parameters:
+      - schema:
+          type: string
+        name: listId
+        in: path
+        required: true
+    get:
+      summary: 目录人物列表
+      tags:
+        - 目录
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  persons:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Person'
+      operationId: get-lists-listId-persons
+      description: 获取目录人物列表
   '/lists/{listId}/subjects':
     parameters:
       - schema:
@@ -1091,8 +1442,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
                   subjects:
                     type: array
                     items:
@@ -1100,8 +1449,6 @@ paths:
       operationId: get-lists-listId-subjects
       description: 获取目录条目列表
       parameters:
-        - $ref: '#/components/parameters/page'
-        - $ref: '#/components/parameters/perPage'
         - schema:
             type: string
             enum:
@@ -1113,36 +1460,11 @@ paths:
           in: query
           name: type
           description: 根据条目类型过滤
-  '/lists/{listId}/subjects/{subjectId}':
-    parameters:
-      - schema:
-          type: string
-        name: listId
-        in: path
-        required: true
-      - schema:
-          type: string
-        name: subjectId
-        in: path
-        required: true
-    put:
-      summary: 条目加入目录
-      operationId: put-lists-listId-subjects-subjectId
-      responses:
-        '201':
-          description: Created
-      description: 条目加入目录
-      tags:
-        - 目录
-    delete:
-      summary: 条目移出目录
-      operationId: delete-lists-listId-subjects-subjectId
-      responses:
-        '204':
-          description: No Content
-      description: 条目移出目录
-      tags:
-        - 目录
+        - schema:
+            type: string
+          in: query
+          description: '过滤某用户已完成的条目（TODO: 待定）'
+          name: user.id
   '/lists/{listId}/users':
     parameters:
       - schema:
@@ -1240,7 +1562,7 @@ paths:
               - +createdAt
               - '-createdAt'
           in: query
-          name: sort
+          name: sortBy
           description: 排序
       tags:
         - 短信
@@ -1262,25 +1584,345 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Message'
-  '/messages/{messageId}':
+  '/messages/{messageIds}':
     parameters:
       - schema:
           type: array
           items:
             type: string
-        name: messageId
+        name: messageIds
         in: path
         required: true
-        description: 多个用逗号分隔
+        description: 消息 ID 们
     delete:
       summary: 删除短信
-      operationId: delete-messages-messageId
+      operationId: delete-messages-messageIds
       responses:
         '204':
           description: No Content
       description: 删除短信
       tags:
         - 短信
+  /persons:
+    get:
+      summary: 人物列表
+      tags:
+        - 人物
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  persons:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Person'
+      operationId: get-persons
+      description: 获取人物列表
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+            enum:
+              - person
+              - company
+              - group
+          in: query
+          name: type
+          description: 根据类型过滤
+        - schema:
+            type: string
+            enum:
+              - cartoonist
+              - writer
+              - illustrator
+              - seiyuu
+              - actor
+              - musician
+              - producer
+          in: query
+          name: career
+          description: 根据职业过滤
+        - schema:
+            type: string
+            enum:
+              - A
+              - B
+              - O
+              - AB
+          in: query
+          name: bloodType
+          description: 根据血型过滤
+        - schema:
+            type: string
+            enum:
+              - male
+              - female
+          in: query
+          name: gender
+          description: 根据性别过滤
+        - schema:
+            type: string
+            enum: []
+            example: '--01'
+          in: query
+          name: birthday
+          description: 根据生日过滤
+        - schema:
+            type: string
+            enum:
+              - '-stat.users'
+              - '-stat.comments'
+              - '-createdAt'
+              - +name
+          in: query
+          name: sortBy
+          description: 排序
+    post:
+      summary: 新建人物
+      operationId: post-persons
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+      description: 新建人物
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+      tags:
+        - 人物
+  '/persons/{personId}':
+    parameters:
+      - schema:
+          type: string
+        name: personId
+        in: path
+        required: true
+    get:
+      summary: 人物详情
+      tags:
+        - 人物
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+      operationId: get-persons-personId
+      description: 获取人物详情
+    patch:
+      summary: 修改人物
+      operationId: patch-persons-personId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Person'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Person'
+      description: 修改人物
+      tags:
+        - 人物
+  '/persons/{personId}/comments':
+    parameters:
+      - schema:
+          type: string
+        name: personId
+        in: path
+        required: true
+    get:
+      summary: 人物评论列表
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+      operationId: get-persons-personId-comments
+      description: 获取人物评论列表
+      tags:
+        - 人物
+    post:
+      summary: 创建人物评论
+      operationId: post-persons-personId-comments
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 创建人物评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 人物
+  '/persons/{personId}/comments/{commentId}':
+    parameters:
+      - schema:
+          type: string
+        name: personId
+        in: path
+        required: true
+      - schema:
+          type: string
+        name: commentId
+        in: path
+        required: true
+    patch:
+      summary: 修改人物评论
+      operationId: patch-persons-personId-comments-commentId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+      description: 修改人物评论
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Comment'
+      tags:
+        - 人物
+    delete:
+      summary: 删除人物评论
+      operationId: delete-persons-personId-comments-commentId
+      responses:
+        '204':
+          description: No Content
+      description: 删除人物评论
+      tags:
+        - 人物
+  /persons/-/collections:
+    get:
+      summary: 所有人物收藏列表
+      tags:
+        - 人物
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PersonCollection'
+      operationId: get-persons---collections
+      description: 获取所有人物收藏列表，不返回 creator 字段，要返回 person 字段
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+          in: query
+          name: creator.id
+          description: 根据创建者用户 ID 或用户名过滤
+          required: true
+  '/persons/{personId}/collections':
+    parameters:
+      - schema:
+          type: string
+        name: personId
+        in: path
+        required: true
+    get:
+      summary: 人物收藏列表
+      tags:
+        - 人物
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PersonCollection'
+      operationId: get-persons-personId-collections
+      description: 获取人物收藏列表，要返回 creator 字段，不返回 person 字段
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+  '/persons/{personId}/collections/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: personId
+        in: path
+        required: true
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 确认收藏人物
+      operationId: get-persons-personId-collections-userId
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      description: 用于判断是否已收藏该人物，未收藏返回 404
+      tags:
+        - 人物
+    put:
+      summary: 收藏人物
+      operationId: put-persons-personId-collections-userId
+      responses:
+        '201':
+          description: Created
+      description: 收藏人物
+      tags:
+        - 人物
+    delete:
+      summary: 取消收藏人物
+      operationId: delete-persons-personId-collections-userId
+      responses:
+        '204':
+          description: No Content
+      description: 取消收藏人物
+      tags:
+        - 人物
   /settings:
     get:
       summary: 设置
@@ -1353,17 +1995,33 @@ paths:
           name: subtype
           description: 根据子类型过滤
         - schema:
-            type: string
-            example: '2020-01-01,2020-03-31'
+            type: array
+            items:
+              type: string
+              format: date
+            minItems: 0
+            maxItems: 2
+            example:
+              - '2020-01-01'
+              - '2020-03-31'
           in: query
+          explode: false
           name: beginDate
-          description: 根据开始时间范围过滤（起止时间逗号分隔）
+          description: 根据开始时间范围过滤
         - schema:
-            type: string
-            example: '2020-01-01,2020-03-31'
+            type: array
+            items:
+              type: string
+              format: date
+            minItems: 0
+            maxItems: 2
+            example:
+              - '2020-01-01'
+              - '2020-03-31'
           in: query
+          explode: false
           name: endDate
-          description: 根据结束时间范围过滤（起止时间逗号分隔）
+          description: 根据结束时间范围过滤
         - schema:
             type: string
             enum:
@@ -1371,7 +2029,7 @@ paths:
               - '-beginDate'
               - +name
           in: query
-          name: sort
+          name: sortBy
           description: 排序
         - schema:
             type: string
@@ -1396,13 +2054,7 @@ paths:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '#/components/schemas/Subject'
-                - type: object
-                  properties:
-                    wiki:
-                      $ref: '#/components/schemas/Wiki'
-              description: ''
+              $ref: '#/components/schemas/Subject'
   '/subjects/{subjectId}':
     parameters:
       - schema:
@@ -1440,12 +2092,268 @@ paths:
         content:
           application/json:
             schema:
-              allOf:
-                - $ref: '#/components/schemas/Subject'
-                - type: object
-                  properties:
-                    wiki:
-                      $ref: '#/components/schemas/Wiki'
+              $ref: '#/components/schemas/Subject'
+  /subjects/-/collections:
+    get:
+      summary: 所有条目收藏列表
+      tags:
+        - 条目
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubjectCollection'
+      operationId: get-subjects---collections
+      description: 获取所有条目收藏列表，不返回 creator 字段，要返回 subject 字段
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+          in: query
+          name: creator.id
+          description: 根据创建者用户 ID 或用户名过滤
+        - schema:
+            type: string
+            enum:
+              - planned
+              - completed
+              - doing
+              - onHold
+              - dropped
+          in: query
+          name: state
+          description: 根据状态过滤
+        - schema:
+            type: string
+            enum:
+              - 'true'
+          in: query
+          name: review
+          description: 过滤带吐槽的收藏
+        - schema:
+            type: string
+          in: query
+          name: tags
+          description: 根据标签过滤
+        - schema:
+            type: string
+            enum:
+              - '-score'
+              - '-createdAt'
+              - '-subject.beginDate'
+              - +subject.name
+          in: query
+          name: sortBy
+          description: 排序
+  '/subjects/{subjectId}/collections':
+    parameters:
+      - schema:
+          type: string
+        name: subjectId
+        in: path
+        required: true
+    get:
+      summary: 条目收藏列表
+      tags:
+        - 条目
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SubjectCollection'
+      operationId: get-subjects-subjectId-collections
+      description: 获取条目收藏列表，要返回 creator 字段，不返回 subject 字段
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+        - schema:
+            type: string
+            enum:
+              - planned
+              - completed
+              - doing
+              - onHold
+              - dropped
+          in: query
+          name: state
+          description: 根据状态过滤
+        - schema:
+            type: string
+            enum:
+              - 'true'
+          in: query
+          name: review
+          description: 过滤带吐槽的收藏
+        - schema:
+            type: string
+          in: query
+          name: tags
+          description: 根据标签过滤
+        - schema:
+            type: string
+            enum:
+              - '-score'
+              - '-createdAt'
+              - '-subject.beginDate'
+              - +subject.name
+          in: query
+          name: sortBy
+          description: 排序
+  '/subjects/{subjectId}/collections/{userId}':
+    parameters:
+      - schema:
+          type: string
+        name: subjectId
+        in: path
+        required: true
+      - $ref: '#/components/parameters/userId'
+    get:
+      summary: 条目收藏详情
+      tags:
+        - 条目
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectCollection'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get-subjects-subjectId-collections-userId
+      description: 用于判断是否收藏，未收藏返回 404
+    patch:
+      summary: 修改条目收藏
+      operationId: patch-subjects-subjectId-collections-userId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectCollection'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubjectCollection'
+      description: 修改收藏内容。未收藏时新建该收藏
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectCollection'
+      tags:
+        - 条目
+    delete:
+      summary: 删除条目收藏
+      operationId: delete-subjects-subjectId-collections-userId
+      responses:
+        '204':
+          description: No Content
+      description: 取消收藏
+      tags:
+        - 条目
+  '/subjects/{subjectId}/episodes':
+    parameters:
+      - schema:
+          type: string
+        name: subjectId
+        in: path
+        required: true
+    get:
+      summary: 条目章节列表
+      tags:
+        - 条目
+        - 章节
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  episodes:
+                    $ref: '#/components/schemas/Episode'
+      operationId: get-subjects-subjectId-episodes
+      description: 获取条目章节列表，不返回 subject 字段
+    post:
+      summary: 新建章节
+      operationId: post-episodes
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Episode'
+      description: 新建章节
+      tags:
+        - 条目
+        - 章节
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Episode'
+  '/subjects/{subjectId}/episodes/-/collections':
+    parameters:
+      - schema:
+          type: string
+        name: subjectId
+        in: path
+        required: true
+    get:
+      summary: 条目所有章节收藏列表
+      tags:
+        - 条目
+        - 章节
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EpisodeCollection'
+      operationId: get-subjects-subjectId-episodes---collections
+      description: 某条目的章节的收藏信息
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: creator.id
+          description: 根据创建者用户 ID 或用户名过滤
+          required: true
   /subjects/-/topics:
     get:
       summary: 所有条目话题列表
@@ -1996,9 +2904,12 @@ components:
           description: 标签
           items:
             type: string
-        public:
-          type: boolean
-          description: 是否公开
+        privacy:
+          type: string
+          description: 隐私：公开、仅好友可见
+          enum:
+            - public
+            - followings
         createdAt:
           type: string
           format: date-time
@@ -2040,82 +2951,54 @@ components:
         - content
         - images
         - tags
-        - public
+        - privacy
         - createdAt
         - updatedAt
         - creator
         - subjects
         - stat
+    Character:
+      title: Character
+      description: 角色
+      allOf:
+        - $ref: '#/components/schemas/Mono'
+    CharacterCollection:
+      title: CharacterCollection
+      description: 角色收藏
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          properties:
+            character:
+              allOf:
+                - $ref: '#/components/schemas/Character'
+              readOnly: true
     Collection:
       title: Collection
       type: object
       description: 收藏
       properties:
         id:
-          type: string
+          type: integer
           readOnly: true
-          description: '由 {subjectId}/{userId} 拼接'
-          pattern: "\\d+\\/\\d+"
-        state:
-          type: string
-          enum:
-            - planned
-            - completed
-            - doing
-            - onHold
-            - dropped
-          description: 状态
-        score:
-          type: integer
-          minimum: 0
-          maximum: 10
-          description: 评分（0 表示未评分）
-        review:
-          type: string
-          description: 吐槽
-        tags:
-          type: array
-          description: 标签
-          items:
-            type: string
-        public:
-          description: 是否公开
-          type: boolean
-        episode:
-          type: integer
-          description: 集数
-        vol:
-          type: number
-          description: 卷数
-        chapter:
-          description: 章数
-          type: number
+          description: 用户 ID，同 creator.id
         createdAt:
           type: string
           format: date-time
           readOnly: true
-          description: 收藏时间
+          description: 创建时间
         updatedAt:
           type: string
-          description: 更新时间
           format: date-time
           readOnly: true
+          description: 更新时间
         creator:
           allOf:
             - $ref: '#/components/schemas/User'
           readOnly: true
-          description: ''
-        subject:
-          allOf:
-            - $ref: '#/components/schemas/Subject'
-          readOnly: true
+          description: （收藏的）创建者
       required:
         - id
-        - state
-        - score
-        - review
-        - tags
-        - public
         - createdAt
         - updatedAt
     Comment:
@@ -2166,27 +3049,20 @@ components:
         title:
           type: string
           description: 标题
-        translations:
-          description: 标题翻译
-          type: object
-          properties:
-            zh-Hans:
-              type: array
-              description: 简体中文翻译
-              items:
-                type: string
+        translation:
+          $ref: '#/components/schemas/Translation'
         type:
           type: string
           description: 类型
           enum:
-            - benpian
+            - main
             - sp
             - op
             - ed
             - pv
             - mad
             - other
-            - ‘’
+            - ''
         episode:
           type: number
           description: 话数、曲目编号
@@ -2213,6 +3089,15 @@ components:
           format: date-time
           readOnly: true
           description: 更新时间
+        stat:
+          required:
+            - comments
+          description: 统计信息
+          type: object
+          properties:
+            comments:
+              type: integer
+              description: 评论数
         subject:
           allOf:
             - $ref: '#/components/schemas/Subject'
@@ -2221,7 +3106,7 @@ components:
       required:
         - id
         - title
-        - translations
+        - translation
         - type
         - episode
         - disc
@@ -2230,6 +3115,23 @@ components:
         - synopsis
         - createdAt
         - updatedAt
+        - stat
+    EpisodeCollection:
+      title: EpisodeCollection
+      description: 章节收藏
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          properties:
+            state:
+              type: string
+              enum:
+                - planned
+                - completed
+                - doing
+                - onHold
+                - dropped
+              description: 状态
     Error:
       title: Error
       description: 错误
@@ -2270,9 +3172,12 @@ components:
           type: string
           description: 头像
           format: uri
-        public:
-          description: 公开性
-          type: boolean
+        privacy:
+          type: string
+          description: 隐私：公开、半公开
+          enum:
+            - public
+            - members
         category:
           type: object
           description: 分类
@@ -2322,7 +3227,7 @@ components:
         - name
         - intro
         - avatar
-        - public
+        - privacy
         - category
         - createdAt
         - updatedAt
@@ -2358,6 +3263,12 @@ components:
             - $ref: '#/components/schemas/User'
           readOnly: true
           description: 创建者
+        items:
+          type: array
+          readOnly: true
+          description: 目录项列表
+          items:
+            $ref: '#/components/schemas/ListItem'
         stat:
           type: object
           readOnly: true
@@ -2369,15 +3280,34 @@ components:
             - musicSubjects
             - gameSubjects
             - realSubjects
-            - collectedSubjects
             - subjects
             - characters
             - persons
             - episodes
+            - items
+            - comments
           properties:
             users:
               type: integer
               description: 收藏用户数
+            comments:
+              type: integer
+              description: 评论数
+            items:
+              type: integer
+              description: 项数
+            characters:
+              type: integer
+              description: 角色数
+            persons:
+              type: integer
+              description: 人物数
+            episodes:
+              type: integer
+              description: 章节数
+            subjects:
+              type: integer
+              description: 条目数
             animeSubjects:
               type: integer
               description: 动画条目数
@@ -2393,21 +3323,6 @@ components:
             realSubjects:
               type: integer
               description: 三次元条目数
-            collectedSubjects:
-              type: integer
-              description: 当前用户已完成条目数
-            subjects:
-              type: integer
-              description: 条目数
-            characters:
-              type: integer
-              description: 角色数
-            persons:
-              type: integer
-              description: 人物数
-            episodes:
-              type: integer
-              description: 章节数
       required:
         - id
         - name
@@ -2416,6 +3331,39 @@ components:
         - updatedAt
         - creator
         - stat
+    ListItem:
+      title: ListItem
+      type: object
+      description: 目录项
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: 'ID，由 `{resource}-{resourceId}` 拼接'
+        sort:
+          type: integer
+          description: 排序
+          default: 0
+        note:
+          type: string
+          description: 评价
+        resource:
+          type: string
+          description: 资源
+          enum:
+            - subject
+            - character
+            - person
+            - episode
+        resourceId:
+          description: 资源 ID
+          type: integer
+      required:
+        - id
+        - sort
+        - note
+        - resource
+        - resourceId
     Message:
       title: Message
       type: object
@@ -2449,6 +3397,97 @@ components:
         - sender
         - receiver
         - createdAt
+    Mono:
+      title: Mono
+      type: object
+      description: 现实人物或虚拟角色（为什么叫 Mono）
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: ID
+        type:
+          type: string
+          description: 类型：个人、公司、组合、角色、机体、舰船、组织机构
+          enum:
+            - person
+            - company
+            - group
+            - character
+            - robot
+            - fleet
+            - organization
+        name:
+          type: string
+          description: 名称
+        translation:
+          allOf:
+            - $ref: '#/components/schemas/Translation'
+          readOnly: true
+        intro:
+          type: string
+          description: 介绍
+        gender:
+          type: string
+          readOnly: true
+          description: 性别
+          enum:
+            - male
+            - female
+        birthday:
+          type: string
+          format: date
+          readOnly: true
+          description: '生日（根据 ISO 8601 规范，后面省略可以不写，前面省略用 `-` 占位，一些例子：`2000-01-02`, `2000-01`, `2000`, `--01-02`, `2000---02`, `--01`, `----02`）'
+        bloodType:
+          type: string
+          readOnly: true
+          description: 血型
+          enum:
+            - A
+            - B
+            - AB
+            - O
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 更新时间
+        wikis:
+          type: array
+          description: 维基项
+          items:
+            $ref: '#/components/schemas/Wiki'
+        stat:
+          description: 统计信息
+          type: object
+          readOnly: true
+          required:
+            - users
+            - comments
+          properties:
+            users:
+              description: 收藏用户数
+              type: integer
+            comments:
+              description: 评论数
+              type: integer
+      required:
+        - id
+        - name
+        - intro
+        - gender
+        - birthday
+        - bloodType
+        - createdAt
+        - updatedAt
+        - wikis
+        - stat
     Pagination:
       title: Pagination
       type: object
@@ -2471,6 +3510,40 @@ components:
         - page
         - perPage
         - lastPage
+    Person:
+      title: Person
+      readOnly: true
+      description: 人物
+      allOf:
+        - $ref: '#/components/schemas/Mono'
+        - type: object
+          properties:
+            careers:
+              description: 职业：漫画家、绘师、作家、声优、歌手（音乐家、乐队组合）、演员、制作人员（制作公司）
+              type: array
+              items:
+                type: string
+                enum:
+                  - cartoonist
+                  - illustrator
+                  - writer
+                  - seiyuu
+                  - musician
+                  - actor
+                  - producer
+          required:
+            - careers
+    PersonCollection:
+      title: PersonCollection
+      description: 人物收藏
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          properties:
+            person:
+              allOf:
+                - $ref: '#/components/schemas/Person'
+              readOnly: true
     Revision:
       title: Revision
       type: object
@@ -2534,22 +3607,12 @@ components:
         ukagaka:
           description: 伪春菜
           type: integer
-        chart:
-          type: integer
-          description: 图像榜单
-        layout:
-          type: array
-          description: 时光机布局
-          items:
-            type: string
       required:
         - message
         - timeline
         - at
         - comment
         - ukagaka
-        - chart
-        - layout
     Subject:
       title: Subject
       type: object
@@ -2587,25 +3650,10 @@ components:
         title:
           description: 标题（原始的语言）
           type: string
-        translations:
-          description: 标题翻译
-          type: object
-          properties:
-            zh-Hans:
-              type: array
-              description: 简体中文翻译
-              items:
-                type: string
-            jp:
-              description: 日文翻译
-              type: array
-              items:
-                type: string
-            en:
-              type: array
-              description: 英文翻译
-              items:
-                type: string
+        translation:
+          allOf:
+            - $ref: '#/components/schemas/Translation'
+          readOnly: true
         synopsis:
           type: string
           description: 概要
@@ -2615,10 +3663,12 @@ components:
         beginDate:
           type: string
           format: date
+          readOnly: true
           description: 开始时间（放送、发售）
         endDate:
           type: string
           format: date
+          readOnly: true
           description: 结束时间
         locked:
           description: 是否锁定
@@ -2689,12 +3739,17 @@ components:
             - rank
             - score
             - ratings
+        wikis:
+          type: array
+          description: 维基项
+          items:
+            $ref: '#/components/schemas/Wiki'
       required:
         - id
         - type
         - subtype
         - title
-        - translations
+        - translation
         - synopsis
         - image
         - beginDate
@@ -2703,6 +3758,58 @@ components:
         - restricted
         - createdAt
         - updatedAt
+        - wikis
+    SubjectCollection:
+      title: SubjectCollection
+      description: 收藏
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          properties:
+            state:
+              type: string
+              enum:
+                - planned
+                - completed
+                - doing
+                - onHold
+                - dropped
+              description: 状态
+            score:
+              type: integer
+              minimum: 0
+              maximum: 10
+              description: 评分（0 表示未评分）
+            review:
+              type: string
+              description: 吐槽
+            tags:
+              type: array
+              description: 标签
+              items:
+                type: string
+            privacy:
+              type: string
+              description: 隐私：公开、仅自己可见
+              enum:
+                - public
+                - self
+            vol:
+              type: number
+              description: 卷数
+            chapter:
+              description: 章数
+              type: number
+            subject:
+              readOnly: true
+              allOf:
+                - $ref: '#/components/schemas/Subject'
+          required:
+            - state
+            - score
+            - review
+            - tags
+            - privacy
     Tag:
       title: Tag
       type: object
@@ -2781,6 +3888,36 @@ components:
         - updatedAt
         - creator
         - stat
+    Translation:
+      title: Translation
+      type: object
+      description: '翻译、别名。key 值符合 [bcp47](https://tools.ietf.org/html/bcp47) 规范。'
+      properties:
+        ja:
+          description: 日文
+          type: array
+          items:
+            type: string
+        ja-Hrkt:
+          description: 日文假名
+          type: array
+          items:
+            type: string
+        ja-Latn:
+          description: 日文罗马音
+          type: array
+          items:
+            type: string
+        zh-Hans:
+          type: array
+          description: 简体中文
+          items:
+            type: string
+        en:
+          type: array
+          description: 英文
+          items:
+            type: string
     User:
       title: User
       type: object
@@ -2800,10 +3937,6 @@ components:
           type: string
           example: "Sai\uD83D\uDD96"
           description: 昵称
-        email:
-          type: string
-          description: 邮箱
-          format: email
         avatar:
           type: string
           format: uri
@@ -2903,7 +4036,6 @@ components:
         - id
         - username
         - name
-        - email
         - avatar
         - bio
         - url
@@ -2913,6 +4045,20 @@ components:
       title: Wiki
       type: object
       description: 维基
+      properties:
+        key:
+          type: string
+          description: 字段名称
+        value:
+          description: 字段值
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                $ref: '#/components/schemas/Wiki'
+      required:
+        - key
+        - value
   parameters:
     page:
       name: page
@@ -2937,12 +4083,14 @@ components:
 tags:
   - name: 用户
   - name: 短信
+  - name: 小组
+  - name: 话题
   - name: 条目
   - name: 章节
   - name: 收藏
   - name: 标签
   - name: 目录
-  - name: 小组
-  - name: 话题
+  - name: 人物
+  - name: 角色
   - name: 日志
   - name: 杂项
