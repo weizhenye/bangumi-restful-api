@@ -13,30 +13,43 @@ info:
     * 涉及图片 url 的字段，如头像、封面，都为 string 类型。获取不同质量、尺寸的图片通过在图片 url 后加 query 实现。
 
     TODO:
-    * 杂项
+    * 话题
       * 最后评论时间
     * 条目
       * 漫画系列、小说系列是否应该作为子类型
       * 关联条目
       * 收藏只看朋友、好友评价
-    * Wiki
-      * 编辑记录
-      * 关联记录
+      * 修订历史
+      * 关联角色修订历史
+      * 关联人物修订历史
+      * 关联条目修订历史
     * 日志
       * Blog 在 request body 里需要有 subjects[].id
+      * 某用户的日志标签列表，需要数量
     * 目录
       * 当前用户已完成条目数
     * 章节
     * 人物
+      * 演出角色（关联角色）
+      * 参与（关联条目）
+      * Wiki、肖像修订历史
+      * 关联角色修订历史
+      * 关联条目修订历史（无）
     * 角色
+      * 关联人物
+      * 出演（关联条目）
+      * Wiki、肖像修订历史
+      * 关联声优修订历史
+      * 关联条目修订历史
     * 标签
       * 你再想想
+    * 时间胶囊
   contact:
     name: Zhenye Wei
     url: 'https://github.com/weizhenye/bangumi-restful-api/issues'
   license:
     name: MIT
-    url: 'https://opensource.org/licenses/MIT'
+    url: 'https://github.com/weizhenye/bangumi-restful-api/blob/master/LICENSE'
 servers:
   - url: 'https://api.bgm.tv'
 paths:
@@ -304,7 +317,6 @@ paths:
           description: 根据性别过滤
         - schema:
             type: string
-            enum: []
             example: '--01'
           in: query
           name: birthday
@@ -317,7 +329,7 @@ paths:
               - '-createdAt'
               - +name
           in: query
-          name: sortBy
+          name: sort
           description: 排序
     post:
       summary: 新建角色
@@ -585,7 +597,7 @@ paths:
             enum:
               - '-comment.updatedAt'
           in: query
-          name: sortBy
+          name: sort
           description: 排序
   '/episodes/{episodeId}':
     parameters:
@@ -1124,7 +1136,7 @@ paths:
               - '-stat.users'
               - '-createdAt'
           in: query
-          name: sortBy
+          name: sort
           description: 排序
         - schema:
             type: string
@@ -1562,7 +1574,7 @@ paths:
               - +createdAt
               - '-createdAt'
           in: query
-          name: sortBy
+          name: sort
           description: 排序
       tags:
         - 短信
@@ -1669,7 +1681,6 @@ paths:
           description: 根据性别过滤
         - schema:
             type: string
-            enum: []
             example: '--01'
           in: query
           name: birthday
@@ -1682,7 +1693,7 @@ paths:
               - '-createdAt'
               - +name
           in: query
-          name: sortBy
+          name: sort
           description: 排序
     post:
       summary: 新建人物
@@ -2026,10 +2037,11 @@ paths:
             type: string
             enum:
               - +stat.rank
+              - '-stat.collections'
               - '-beginDate'
               - +name
           in: query
-          name: sortBy
+          name: sort
           description: 排序
         - schema:
             type: string
@@ -2153,7 +2165,7 @@ paths:
               - '-subject.beginDate'
               - +subject.name
           in: query
-          name: sortBy
+          name: sort
           description: 排序
   '/subjects/{subjectId}/collections':
     parameters:
@@ -2216,7 +2228,7 @@ paths:
               - '-subject.beginDate'
               - +subject.name
           in: query
-          name: sortBy
+          name: sort
           description: 排序
   '/subjects/{subjectId}/collections/{userId}':
     parameters:
@@ -2936,15 +2948,10 @@ components:
           readOnly: true
           required:
             - comments
-            - lastCommentedAt
           properties:
             comments:
               type: integer
               description: 回复数
-            lastCommentedAt:
-              type: string
-              format: date-time
-              description: 最后回复时间
       required:
         - id
         - title
@@ -2961,7 +2968,7 @@ components:
       title: Character
       description: 角色
       allOf:
-        - $ref: '#/components/schemas/Mono'
+        - $ref: '#/components/schemas/Entity'
     CharacterCollection:
       title: CharacterCollection
       description: 角色收藏
@@ -2973,6 +2980,26 @@ components:
               allOf:
                 - $ref: '#/components/schemas/Character'
               readOnly: true
+    CharacterRelation:
+      title: CharacterRelation
+      type: object
+      description: 角色与（人物、条目）的关系
+      properties:
+        subject:
+          $ref: '#/components/schemas/Subject'
+        person:
+          $ref: '#/components/schemas/Person'
+        character:
+          $ref: '#/components/schemas/Character'
+        role:
+          type: string
+          enum:
+            - main
+            - supporting
+            - cameo
+          description: 出演类型：主演、配角、客串
+      required:
+        - role
     Collection:
       title: Collection
       type: object
@@ -3037,6 +3064,97 @@ components:
         - createdAt
         - updatedAt
         - creator
+    Entity:
+      title: Entity
+      type: object
+      description: 现实人物或虚拟角色
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: ID
+        type:
+          type: string
+          description: 类型：个人、公司、组合、角色、机体、舰船、组织机构
+          enum:
+            - person
+            - company
+            - group
+            - character
+            - robot
+            - fleet
+            - organization
+        name:
+          type: string
+          description: 名称
+        translation:
+          allOf:
+            - $ref: '#/components/schemas/Translation'
+          readOnly: true
+        intro:
+          type: string
+          description: 介绍
+        gender:
+          type: string
+          readOnly: true
+          description: 性别
+          enum:
+            - male
+            - female
+        birthday:
+          type: string
+          format: date
+          readOnly: true
+          description: '生日（根据 ISO 8601 规范，后面省略可以不写，前面省略用 `-` 占位，一些例子：`2000-01-02`, `2000-01`, `2000`, `--01-02`, `2000---02`, `--01`, `----02`）'
+        bloodType:
+          type: string
+          readOnly: true
+          description: 血型
+          enum:
+            - A
+            - B
+            - AB
+            - O
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 更新时间
+        wikis:
+          type: array
+          description: 维基项
+          items:
+            $ref: '#/components/schemas/Wiki'
+        stat:
+          description: 统计信息
+          type: object
+          readOnly: true
+          required:
+            - users
+            - comments
+          properties:
+            users:
+              description: 收藏用户数
+              type: integer
+            comments:
+              description: 评论数
+              type: integer
+      required:
+        - id
+        - name
+        - intro
+        - gender
+        - birthday
+        - bloodType
+        - createdAt
+        - updatedAt
+        - wikis
+        - stat
     Episode:
       title: Episode
       type: object
@@ -3340,7 +3458,7 @@ components:
           type: string
           readOnly: true
           description: 'ID，由 `{resource}-{resourceId}` 拼接'
-        sort:
+        order:
           type: integer
           description: 排序
           default: 0
@@ -3360,7 +3478,7 @@ components:
           type: integer
       required:
         - id
-        - sort
+        - order
         - note
         - resource
         - resourceId
@@ -3397,97 +3515,6 @@ components:
         - sender
         - receiver
         - createdAt
-    Mono:
-      title: Mono
-      type: object
-      description: 现实人物或虚拟角色（为什么叫 Mono）
-      properties:
-        id:
-          type: integer
-          readOnly: true
-          description: ID
-        type:
-          type: string
-          description: 类型：个人、公司、组合、角色、机体、舰船、组织机构
-          enum:
-            - person
-            - company
-            - group
-            - character
-            - robot
-            - fleet
-            - organization
-        name:
-          type: string
-          description: 名称
-        translation:
-          allOf:
-            - $ref: '#/components/schemas/Translation'
-          readOnly: true
-        intro:
-          type: string
-          description: 介绍
-        gender:
-          type: string
-          readOnly: true
-          description: 性别
-          enum:
-            - male
-            - female
-        birthday:
-          type: string
-          format: date
-          readOnly: true
-          description: '生日（根据 ISO 8601 规范，后面省略可以不写，前面省略用 `-` 占位，一些例子：`2000-01-02`, `2000-01`, `2000`, `--01-02`, `2000---02`, `--01`, `----02`）'
-        bloodType:
-          type: string
-          readOnly: true
-          description: 血型
-          enum:
-            - A
-            - B
-            - AB
-            - O
-        createdAt:
-          type: string
-          format: date-time
-          readOnly: true
-          description: 创建时间
-        updatedAt:
-          type: string
-          format: date-time
-          readOnly: true
-          description: 更新时间
-        wikis:
-          type: array
-          description: 维基项
-          items:
-            $ref: '#/components/schemas/Wiki'
-        stat:
-          description: 统计信息
-          type: object
-          readOnly: true
-          required:
-            - users
-            - comments
-          properties:
-            users:
-              description: 收藏用户数
-              type: integer
-            comments:
-              description: 评论数
-              type: integer
-      required:
-        - id
-        - name
-        - intro
-        - gender
-        - birthday
-        - bloodType
-        - createdAt
-        - updatedAt
-        - wikis
-        - stat
     Pagination:
       title: Pagination
       type: object
@@ -3515,7 +3542,7 @@ components:
       readOnly: true
       description: 人物
       allOf:
-        - $ref: '#/components/schemas/Mono'
+        - $ref: '#/components/schemas/Entity'
         - type: object
           properties:
             careers:
@@ -3544,6 +3571,20 @@ components:
               allOf:
                 - $ref: '#/components/schemas/Person'
               readOnly: true
+    PersonRelation:
+      title: PersonRelation
+      type: object
+      description: 人物与条目的关系
+      properties:
+        person:
+          $ref: '#/components/schemas/Person'
+        subject:
+          $ref: '#/components/schemas/Subject'
+        credit:
+          type: string
+          description: 参与类型：TODO
+      required:
+        - credit
     Revision:
       title: Revision
       type: object
@@ -3706,6 +3747,9 @@ components:
             dropped:
               type: integer
               description: 抛弃数
+            collections:
+              type: integer
+              description: 收藏用户数
             rank:
               type: integer
               description: 排名
@@ -3736,6 +3780,7 @@ components:
             - doing
             - onHold
             - dropped
+            - collections
             - rank
             - score
             - ratings
@@ -3810,6 +3855,52 @@ components:
             - review
             - tags
             - privacy
+    SubjectRelation:
+      title: SubjectRelation
+      type: object
+      description: 条目与条目的关系
+      properties:
+        subject:
+          $ref: '#/components/schemas/Subject'
+        rel:
+          type: string
+          description: |-
+            关联类型：
+            * 动画、三次元
+              * 改编（adaptation）、前传（prequel）、续集（sequel）、总集篇（summary）、全集（full-story）、番外篇（side-story）、角色出演（character）、相同世界观（same-setting）、不同世界观（alternative-setting）、不同演绎（alternative-version）、衍生（spin-off）、主线故事（parent-story）、其他（other）
+            * 书籍
+              * 单行本（offprint）、系列（series）、画集（album）、改编（adaptation）、前传（prequel）、续集（sequel）、番外篇（side-story）、主线故事（parent-story）、不同版本（alternative-version）、角色出演（character）、相同世界观（same-setting）、不同世界观（alternative-setting）、其他（other）
+            * 音乐
+              * 原声集（ost）、角色歌（character-song）、片头曲（opening-song）、片尾曲（ending-song）、插入歌（insert-song）、印象曲（image-song）、广播剧（drama）、其他（other）
+            * 游戏
+              * 改编（adaptation）、前传（prequel）、续集（sequel）、资料片外传（side-story）、主线故事（parent-story）、角色出演（character）、相同世界观（same-setting）、不同世界观（alternative-setting）、不同演绎（alternative-version）、其他（other）
+          enum:
+            - adaptation
+            - prequel
+            - sequel
+            - summary
+            - full-story
+            - side-story
+            - character
+            - same-setting
+            - alternative-setting
+            - alternative-version
+            - spin-off
+            - parent-story
+            - other
+            - offprint
+            - series
+            - album
+            - ost
+            - character-song
+            - opening-song
+            - ending-song
+            - insert-song
+            - image-song
+            - drama
+      required:
+        - subject
+        - rel
     Tag:
       title: Tag
       type: object
@@ -3891,7 +3982,7 @@ components:
     Translation:
       title: Translation
       type: object
-      description: '翻译、别名。key 值符合 [bcp47](https://tools.ietf.org/html/bcp47) 规范。'
+      description: '翻译、别名。key 值符合 [BCP 47](https://tools.ietf.org/html/bcp47) 规范。'
       properties:
         ja:
           description: 日文
